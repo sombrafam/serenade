@@ -110,7 +110,7 @@ if(APPLE)
   )
 else()
   target_link_libraries(serenade-code-engine
-    "-Wl,--start-group;/opt/intel/mkl/lib/intel64/libmkl_intel_ilp64.a;/opt/intel/mkl/lib/intel64/libmkl_sequential.a;/opt/intel/mkl/lib/intel64/libmkl_core.a;-Wl,--end-group"
+    "-Wl,--start-group;/usr/lib/x86_64-linux-gnu/libmkl_intel_ilp64.a;/usr/lib/x86_64-linux-gnu/libmkl_sequential.a;/usr/lib/x86_64-linux-gnu/libmkl_core.a;-Wl,--end-group"
     dl
     gomp
   )

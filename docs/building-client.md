@@ -1,19 +1,78 @@
-# Building Serenade
+Serenade is built using the [Gradle](https://gradle.org) build system. We also have a few scripts useful for running
+various Serenade services.
 
-Serenade is built using the [Gradle](https://gradle.org) build system. We also have a few scripts useful for running various Serenade services.
+## Building the client
+Building Serenade is supported on Linux and Mac. The first thing you need to do is to download the source code.
 
-## Client
+```shell
+git clone https://github.com/serenadeai/serenade.git
+```
 
-To run the Serenade app, simply run:
+For Linux:
 
-    cd client
-    ./bin/dev.py
+- Use Ubuntu Focal (20.04) or Jammy (22.04) 
+- Run the scripts to install the Ubuntu prerequisites. When prompted for configuration questions, just use the defaults.
+
+```shell
+cd serenade/
+./scripts/setup/setup-ubuntu.sh
+# If prompted for anything during the installation, select the default options and continue.
+# As requested by the script, add the export lines to your ~/.bashrc~/ or .zshrc file and reload the
+# configs
+
+cd client
+./bin/build.py
+```
+
+Note: If you run into to dependency problems, trying to run the scripts from inside a fresh
+Ubuntu Jammy VM or container.
+
+For MacOS:
+
+- Run the scripts to install the MacOS prerequisites:
+
+```shell
+cd serenade/
+./scripts/setup/setup-mac.sh
+
+cd client
+./bin/build.py
+```
+
+Once you have the build successfully completed, you can run the client locally, or package it:
+
+```shell
+cd client
+# To run the client locally:
+npm run dev
+
+# To generate the app image:
+npm run package:dist-linux
+
+# To generate the windows executable:
+npm run package:dist-win
+
+# To generate the mac executable:
+npm run package:dist-mac
+```
+
+```
 
 This will run a local version of the client that uses Serenade Cloud as the backend.
 
 If you'd instead like the client to connect to a specific endpoint (e.g., a local server you're running yourself), you can run:
 
     ENDPOINT=http://localhost:17200 ./bin/dev.py
+
+
+## Other Dependencies
+
+Now run the common dependency builder and installer:
+
+```shell
+./scripts/setup/build-dependencies.sh
+# Sit back and relax, this will take a while to finish
+```
 
 ## Service Setup
 
@@ -133,6 +192,7 @@ If you'd like to build your own version Serenade Local to be used by the client,
 
     gradle installd
     gradle client:installServer
+    gradle client:clientDistLinux | client:clientDistWin | client:clientDistMac 
 
 Then, when you run the client (following the instructions above) and use the Serenade Local endpoint, you'll be running the version that you built locally.
 

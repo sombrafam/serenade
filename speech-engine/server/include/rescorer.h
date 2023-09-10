@@ -6,6 +6,8 @@
 #include "lat/kaldi-lattice.h"
 #include "lm/const-arpa-lm.h"
 
+#include <optional>
+
 namespace speech_engine {
 
 class Rescorer {

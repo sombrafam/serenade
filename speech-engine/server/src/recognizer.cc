@@ -7,6 +7,8 @@
 #include "fstext/table-matcher.h"
 #include "util/common-utils.h"
 
+#include <optional>
+
 using namespace kaldi;
 
 namespace speech_engine {

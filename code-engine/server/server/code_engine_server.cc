@@ -296,7 +296,7 @@ int main(int argc, char* argv[]) {
           return result;
         });
 
-    app.loglevel(crow::LogLevel::Error);
+    app.loglevel(crow::LogLevel::Debug);
     app.port(17203).server_name("").multithreaded().run();
 
   } catch (const std::exception& e) {

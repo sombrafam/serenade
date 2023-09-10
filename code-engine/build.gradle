@@ -3,7 +3,7 @@ plugins {
 }
 
 task buildCMake(type: Exec, dependsOn: [rootProject.downloadModels]) {
-    commandLine "bash", "-c", "mkdir -p server/build && cd server/build && cmake .. && cmake --build . -j2"
+    commandLine "bash", "-c", "mkdir -p server/build && cd server/build && cmake .. && cmake --build . -j8"
 }
 
 task distTar(type: Tar) {

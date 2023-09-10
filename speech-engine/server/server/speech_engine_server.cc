@@ -7,6 +7,7 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <optional>
 
 #include "base/kaldi-common.h"
 #include "crow.h"
@@ -411,7 +412,7 @@ int main(int argc, char* argv[]) {
           (*stream)->HandleAudioToAlternatives(request);
         });
 
-    app.loglevel(crow::LogLevel::Error);
+    app.loglevel(crow::LogLevel::Debug);
     app.port(17202).server_name("").multithreaded().run();
   } catch (const std::exception& e) {
     std::cerr << "speech-engine exception: " << e.what() << std::endl;

@@ -12,6 +12,8 @@
 #include "recognizer.h"
 #include "recognizer_config.h"
 
+#include <optional>
+
 namespace speech_engine {
 
 class Recognizer {

@@ -45,7 +45,8 @@ pip3 install --upgrade \
   pyenchant \
   pyyaml \
   requests \
-  sentencepiece==0.1.95
+  sentencepiece==0.1.95 \
+  boto3
 
 sudo-non-docker npm install -g \
   prettier \
@@ -88,9 +89,9 @@ cd protobuf-src
 ./autogen.sh
 ./configure --prefix=$PWD/../protobuf --disable-shared --with-pic
 if [[ `uname` == "Darwin" ]] ; then
-  make CFLAGS="-mmacosx-version-min=$osx_version" CXXFLAGS="-g -std=c++11 -DNDEBUG -mmacosx-version-min=$osx_version" -j2
+  make CFLAGS="-mmacosx-version-min=$osx_version" CXXFLAGS="-g -std=c++11 -DNDEBUG -mmacosx-version-min=$osx_version" -j4
 else
-  make -j2
+  make -j4
 fi
 make install
 cd ..
@@ -105,7 +106,7 @@ cmake .. \
   -DCMAKE_OSX_ARCHITECTURES=x86_64 \
   -DCMAKE_INSTALL_PREFIX=$PWD/../../sentencepiece \
   -DCMAKE_OSX_DEPLOYMENT_TARGET=$osx_version
-cmake --build . --config Release -j2
+cmake --build . --config Release -j4
 cmake --install .
 cd ../..
 rm -rf sentencepiece-src
@@ -132,14 +133,16 @@ elif [[ `uname` == "Darwin" ]] ; then
     -DUSE_APPLE_ACCELERATE=on \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=$osx_version
 else
+  export  export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH
   cmake .. \
     -DBUILD_ARCH=x86-64 \
     -DCMAKE_OSX_ARCHITECTURES=x86_64 \
     -DCOMPILE_CUDA=off \
     -DUSE_DOXYGEN=off
 fi
+make -j4
 rm -f ../src/3rd_party/sentencepiece/version
-cmake --build . --config Release -j2
+
 cd ../..
 
 git clone https://github.com/kaldi-asr/kaldi
@@ -150,7 +153,7 @@ cd tools
 if [[ `uname` == 'Darwin' ]] ; then
   perl -i -pe"s/-g -O2/-g -O2 -mmacosx-version-min=$osx_version/g" Makefile
 fi
-make -j2
+make -j4
 cd ../src
 if [[ `uname` == 'Darwin' ]] ; then
   ./configure --shared --use-cuda=no
@@ -161,7 +164,7 @@ else
 fi
 perl -i -pe's/-g //g' kaldi.mk
 make -j clean depend
-make -j2
+make -j4
 cd ../tools
 ./extras/install_phonetisaurus.sh
 cd ../..
@@ -188,3 +191,4 @@ if [[ "$minimal" == "true" ]] ; then
   find kaldi -type f -name "*.so*" -delete
   find kaldi -type f -name "*.o" -delete
 fi
+

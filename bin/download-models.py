@@ -23,7 +23,6 @@ def _flatten(data, prefix=""):
             result.extend(_flatten(v, key).items())
         else:
             result.append((key[:-1], v))
-
     return dict(result)
 
 
@@ -33,6 +32,7 @@ def _flatten(data, prefix=""):
     default=f"{serenade.config.base_url}/models",
     help="URL or S3 path where models are stored",
 )
+
 def main(url):
     """Download the models specified in config/models.yaml"""
     models = _flatten(serenade.config.models())
@@ -43,7 +43,6 @@ def main(url):
                 version = f.read().strip()
                 if version == model:
                     continue
-
         archive = serenade.config.library_path("models", path, f"{model}.tar.gz")
         if not os.path.exists(archive):
             shutil.rmtree(os.path.dirname(archive), ignore_errors=True)
@@ -53,7 +52,6 @@ def main(url):
 
         with tarfile.open(archive, mode="r:gz") as f:
             f.extractall(os.path.dirname(archive))
-
         os.remove(archive)
 
 

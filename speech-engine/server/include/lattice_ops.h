@@ -1,6 +1,7 @@
 #ifndef LIBRARY_LATTICE_OPS_H
 #define LIBRARY_LATTICE_OPS_H
 
+#include <optional>
 #include "lat/kaldi-lattice.h"
 
 namespace speech_engine {

@@ -1,4 +1,4 @@
-package core.parser;
+  package core.parser;
 
 import ai.serenade.treesitter.Languages;
 import ai.serenade.treesitter.Node;

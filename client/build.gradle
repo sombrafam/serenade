@@ -44,6 +44,36 @@ task installServer(dependsOn: [
     installSpeechEngineModels
 ]) {}
 
+task initElectron(type: Exec) {
+    // do not build if folder node_modules exists
+
+    if (file("node_modules").exists()) {
+        println "node_modules exists, skipping npm install"
+        // Gradle exec type requires commandLine to be always called, so we're calling a dummy here
+        commandLine "bash", "-c", "true"
+    } else {
+        println "Running npm install"
+        commandLine "bash", "-c", "./bin/build.py"
+    }
+}
+
+task clientDistLinux(type: Exec, dependsOn: [":client:initElectron"]) {
+    commandLine "npm", "run", "package:dist-linux"
+}
+
+task fullDistLinux(type: Exec, dependsOn: [":client:initElectron", "installServer"]) {
+    commandLine "npm", "run", "package:dist-linux"
+}
+
+task clientDistMac(type: Exec, dependsOn: [":client:initElectron"]) {
+    commandLine "npm", "run", "package:dist-mac"
+}
+
+task clientDistWindows(type: Exec, dependsOn: [":client:initElectron"]) {
+    commandLine "npm", "run", "package:dist-win"
+}
+
 clean {
     delete "static/local"
+    delete "node_modules"
 }

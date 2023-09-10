@@ -4,6 +4,8 @@
 #include "lat/lattice-functions.h"
 #include "lattice_ops.h"
 
+#include <optional>
+
 using namespace kaldi;
 
 namespace speech_engine {

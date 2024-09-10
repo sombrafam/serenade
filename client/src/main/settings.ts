@@ -372,6 +372,15 @@ export default class Settings {
     return this.get("user", "verbose_logging", false);
   }
 
+  getLoggingLevel(): string {
+    let verbose = this.getUseVerboseLogging();
+    if (verbose) {
+      return "debug";
+    } else {
+      return "info";
+    }
+  }
+
   async loadWordsFileIfNeeded() {
     const modified = (await fs.stat(this.wordsFile())).mtime.getTime();
     if (modified > this.wordsLastLoad) {

@@ -18,14 +18,16 @@ export default class Local {
   private logStreams: { [key in RunnableService]?: fs.WriteStream } = {};
   private pollingInterval?: NodeJS.Timeout;
   private started: boolean = false;
+  private log: Log;
 
   constructor(
     private bridge: RendererBridge,
-    private log: Log,
     private mainWindow: MainWindow,
     private metadata: Metadata,
     private settings: Settings
-  ) {}
+  ) {
+    this.log = new Log(settings, "Local");
+  }
 
   private captureOutput(service: RunnableService, child: child_process.ChildProcess) {
     if (this.logStreams[service]) {
@@ -129,10 +131,10 @@ export default class Local {
     this.pollUntilRunning();
 
     let speechEngineModels = path.join(__dirname, "..", "static", "local", "speech-engine-models");
-    this.log.logVerbose("Initial speech engine model path: " + speechEngineModels);
+    this.log.info("Initial speech engine model path: " + speechEngineModels);
 
     let codeEngineModels = path.join(__dirname, "..", "static", "local", "code-engine-models");
-    this.log.logVerbose("Initial code engine model path: " + codeEngineModels);
+    this.log.info("Initial code engine model path: " + codeEngineModels);
 
     if (os.platform() == "win32") {
       speechEngineModels =
@@ -145,7 +147,7 @@ export default class Local {
           ])
           .stdout.toString()
           .trim();
-      this.log.logVerbose("WSL speech engine path: " + speechEngineModels);
+      this.log.info("WSL speech engine path: " + speechEngineModels);
 
       codeEngineModels =
         "/" +
@@ -157,7 +159,7 @@ export default class Local {
           ])
           .stdout.toString()
           .trim();
-      this.log.logVerbose("WSL code engine path: " + codeEngineModels);
+      this.log.info("WSL code engine path: " + codeEngineModels);
     }
 
     // here and below: WSL doesn't deal well with paths, so set the cwd to be the same as the binary

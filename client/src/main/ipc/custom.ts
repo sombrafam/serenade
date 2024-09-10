@@ -118,7 +118,7 @@ For more information, check out the Serenade API documentation: https://serenade
     return new Promise((resolve) => {
       this.resolveStart = resolve;
       this.stop();
-      const stream = fs.createWriteStream(path.join(this.settings.path(), "serenade.log"));
+      const stream = fs.createWriteStream(path.join(this.settings.path(), "custom-command-server.log"));
       this.process = child_process.fork("serenade-custom-commands-server.min.js", [], {
         cwd: path.join(this.settings.path(), "ipc"),
         stdio: "pipe",

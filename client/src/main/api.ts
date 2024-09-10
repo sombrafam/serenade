@@ -10,15 +10,17 @@ import SettingsWindow from "./windows/settings";
 import { Endpoint } from "../shared/endpoint";
 
 export default class API {
+  private log: Log;
+
   constructor(
     private active: Active,
     private bridge: RendererBridge,
-    private log: Log,
     private mainWindow: MainWindow,
     private metadata: Metadata,
     private settings: Settings,
     private settingsWindow: () => Promise<SettingsWindow> | undefined
   ) {
+    this.log = new Log(settings, "API");
     setInterval(() => {
       this.ping(this.settings.getStreamingEndpoint());
     }, 60000);
@@ -54,7 +56,8 @@ export default class API {
       const buffer = await response.buffer();
       return responseClass.toObject(responseClass.decode(buffer), { defaults: true });
     } catch (e) {
-      this.log.logError(e);
+      let message = "Exception while trying to POST to " + url;
+      this.log.error(message, e);
     }
   }
 

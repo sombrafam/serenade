@@ -15,13 +15,14 @@ export default class Stream {
   private keepAliveTimeout?: NodeJS.Timeout;
   private loggingBuffer: Buffer[] = [];
   private coreSocket?: WebSocket;
+  private log: Log;
 
   constructor(
     private active: Active,
     private api: API,
-    private log: Log,
     private settings: Settings
   ) {
+    this.log = new Log(settings, "Stream");
     // disconnect after an hour with no commands
     setInterval(() => {
       if (this.connected() && Date.now() > this.lastActivity + 3600000) {
@@ -35,7 +36,7 @@ export default class Stream {
         return;
       }
 
-      this.log.logVerbose("Sending keepalive");
+      this.log.debug("Sending keepalive");
       this.send(this.coreSocket, {
         keepAliveRequest: {},
       });
@@ -75,7 +76,7 @@ export default class Stream {
       );
 
       this.coreSocket.on("open", () => {
-        this.log.logVerbose("Stream connected");
+        this.log.info("Stream connected");
         this.isConnected = true;
         resolve(true);
       });
@@ -107,7 +108,7 @@ export default class Stream {
 
       this.coreSocket.on("error", (e) => {
         chunkManager.toggle(false);
-        this.log.logError(e);
+        this.log.error("Error during socket operation", e);
       });
     });
   }
@@ -121,7 +122,7 @@ export default class Stream {
       return;
     }
 
-    this.log.logVerbose("Stream disconnected");
+    this.log.info("Stream disconnected");
     this.isConnected = false;
     this.coreSocket?.close();
     this.loggingBuffer = [];
@@ -168,7 +169,7 @@ export default class Stream {
   }
 
   sendCallbackRequest(callbackRequest: core.ICallbackRequest) {
-    this.log.logVerbose(`Sending callback request: ${callbackRequest.type}`);
+    this.log.debug(`Sending callback request: ${callbackRequest.type}`);
     this.send(this.coreSocket, {
       callbackRequest,
     });
@@ -181,7 +182,7 @@ export default class Stream {
   }
 
   async sendEditorStateRequest(clipboard: boolean = false, editorState?: any): Promise<any> {
-    this.log.logVerbose("Sending editor state");
+    this.log.debug("Sending editor state");
     if (!editorState) {
       editorState = await this.active.getEditorState(clipboard);
     }
@@ -206,7 +207,7 @@ export default class Stream {
     }
 
     const endpointId = uuid();
-    this.log.logVerbose(
+    this.log.debug(
       `Sending ${finalize ? "final" : "partial"} endpoint request for ${chunkId}`
     );
     this.send(this.coreSocket, {
@@ -219,7 +220,7 @@ export default class Stream {
   }
 
   async sendInitializeRequest(): Promise<any> {
-    this.log.logVerbose("Sending initialize request");
+    this.log.debug("Sending initialize request");
     this.send(this.coreSocket, {
       initializeRequest: {
         editorState: await this.active.getEditorState(),
@@ -228,7 +229,7 @@ export default class Stream {
   }
 
   async sendTextRequest(text: string, includeAlternatives: boolean) {
-    this.log.logVerbose(`Sending text request: ${text}, ${includeAlternatives}`);
+    this.log.debug(`Sending text request: ${text}, ${includeAlternatives}`);
     await this.sendInitializeRequest();
     this.send(this.coreSocket, {
       textRequest: {

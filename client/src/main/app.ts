@@ -72,7 +72,9 @@ export default class App {
     const settings = (instance.settings = new Settings());
     const bridge = (instance.bridge = new RendererBridge(settings));
     const system = new System(settings);
-    const log = (instance.log = new Log(settings));
+    const log = (instance.log = new Log(settings, "Main"));
+
+    log.info("App created! Starting initialization...");
     instance.updateDarkModeForAllWindows();
 
     const custom = (instance.custom = await Custom.create(settings));
@@ -147,9 +149,9 @@ export default class App {
     );
 
     const nativeCommands = new NativeCommands(active, insertHistory, revisionBoxWindow, system);
-    const api = new API(active, bridge, log, mainWindow, metadata, settings, () => settingsWindow);
-    const stream = (instance.stream = new Stream(active, api, log, settings));
-    const local = (instance.local = new Local(bridge, log, mainWindow, metadata, settings));
+    const api = new API(active, bridge, mainWindow, metadata, settings, () => settingsWindow);
+    const stream = (instance.stream = new Stream(active, api, settings));
+    const local = (instance.local = new Local(bridge, mainWindow, metadata, settings));
     const nux = new NUX(
       active,
       instance,
@@ -168,7 +170,7 @@ export default class App {
       miniModeWindow,
       pluginManager,
       stream,
-      log
+      settings
     );
 
     await custom.start();
@@ -177,7 +179,6 @@ export default class App {
       api,
       bridge,
       insertHistory,
-      log,
       mainWindow,
       miniModeWindow,
       nativeCommands,
@@ -198,7 +199,6 @@ export default class App {
       chunkQueue,
       custom,
       executor,
-      log,
       mainWindow,
       microphone,
       miniModeWindow,
@@ -407,6 +407,7 @@ export default class App {
         useMiniModeFewerAlternatives: settings.getUseMiniModeFewerAlternatives(),
         useMiniModeHideTimeout: settings.getUseMiniModeHideTimeout(),
         useVerboseLogging: settings.getUseVerboseLogging(),
+        loggingLevel: settings.getLoggingLevel(),
       },
       windows ? windows : [this.mainWindow, this.miniModeWindow, this.settingsWindow]
     );

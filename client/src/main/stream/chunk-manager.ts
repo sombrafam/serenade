@@ -46,6 +46,7 @@ export default class ChunkManager {
   private speaking: boolean = false;
   private timeToWaitBeforeClassifyingAsNoise: number = 200;
   private timeToWaitBeforeStartingNewCommand: number = 5000;
+  private log: Log;
 
   listening: boolean = false;
 
@@ -57,13 +58,14 @@ export default class ChunkManager {
     private chunkQueue: ChunkQueue,
     private custom: Custom,
     private executor: Executor,
-    private log: Log,
     private mainWindow: MainWindow,
     private microphone: Microphone,
     private miniModeWindow: MiniModeWindow,
     private settings: Settings,
     private stream: Stream
-  ) {}
+  ) {
+    this.log = new Log(settings, "ChunkManager");
+  }
 
   private async enqueue(request: Request, flush: boolean = true) {
     this.buffer.push(request);
@@ -80,7 +82,7 @@ export default class ChunkManager {
     while (this.buffer.length > 0) {
       const request = this.buffer.shift()!;
       if (request.requestType != "audio") {
-        this.log.logVerbose(`Flushing ${request.requestType}`);
+        this.log.debug(`Flushing ${request.requestType}`);
       }
 
       await this.send(request);
@@ -227,45 +229,45 @@ export default class ChunkManager {
 
   async attemptToEvaluateChunk(chunk: Chunk): Promise<any> {
     if (this.chunkQueue.size() == 0) {
-      this.log.logVerbose(`Attempt to evaluate chunk, but empty chunk queue`);
+      this.log.debug(`Attempt to evaluate chunk, but empty chunk queue`);
       return;
     }
 
     const current = this.chunkQueue.getIndex(0);
-    this.log.logVerbose(
-      `Attempt to evaluate chunk\n  chunk.id: ${chunk.id}\n  chunk.executed: ${
+    this.log.debug(
+      `Attempt to evaluate chunk chunk.id: ${chunk.id} chunk.executed: ${
         chunk.executed
-      }\n  chunk.reverted: ${
+      } chunk.reverted: ${
         chunk.reverted
-      }\n  chunk.response: ${!!chunk.response}\n  chunk.silence: ${
+      } chunk.response: ${!!chunk.response} chunk.silence: ${
         chunk.silence
-      } (${this.reachedSilenceThreshold(chunk)})\n  current.id: ${
+      } (${this.reachedSilenceThreshold(chunk)}) current.id: ${
         current.id
-      }\n  current.audioSize: ${current.audioSize}`
+      } current.audioSize: ${current.audioSize}`
     );
 
     if (!chunk.reverted && chunk.executed) {
-      this.log.logVerbose(`Not executing chunk ${chunk.id}: already executed`);
+      this.log.debug(`Not executing chunk ${chunk.id}: already executed`);
       return;
     }
 
     if (chunk.id != current.id) {
-      this.log.logVerbose(`Not executing chunk ${chunk.id}: new chunk started`);
+      this.log.debug(`Not executing chunk ${chunk.id}: new chunk started`);
       return;
     }
 
     if (!chunk.reverted && !chunk.response) {
-      this.log.logVerbose(`Not executing chunk ${chunk.id}: no final response yet`);
+      this.log.debug(`Not executing chunk ${chunk.id}: no final response yet`);
       return;
     }
 
     if (chunk.reverted && !chunk.revertedResponse) {
-      this.log.logVerbose(`Not executing chunk ${chunk.id}: no reverted response yet`);
+      this.log.debug(`Not executing chunk ${chunk.id}: no reverted response yet`);
       return;
     }
 
     if (!this.reachedSilenceThreshold(chunk)) {
-      this.log.logVerbose(`Not executing chunk ${chunk.id}: waiting for silence`);
+      this.log.debug(`Not executing chunk ${chunk.id}: waiting for silence`);
       return;
     }
 
@@ -276,7 +278,7 @@ export default class ChunkManager {
       (!chunk.response.alternatives || chunk.response.alternatives.length == 0) &&
       !chunk.response.execute
     ) {
-      this.log.logVerbose(`Not executing chunk ${chunk.id}: no alternatives or execute`);
+      this.log.debug(`Not executing chunk ${chunk.id}: no alternatives or execute`);
       this.deadlineToMakeNewInitializeRequest =
         chunk.audioSize < this.audioSizeForDelayedInitialize
           ? Date.now() + this.timeToWaitBeforeClassifyingAsNoise
@@ -285,7 +287,7 @@ export default class ChunkManager {
     }
 
     if (chunk.response && chunk.response.final && this.shouldAppendToPrevious(chunk.response)) {
-      this.log.logVerbose(`Appending to previous ${chunk.id}`);
+      this.log.debug(`Appending to previous ${chunk.id}`);
       chunk.reverted = Date.now();
       chunk.executed = 0;
       chunk.silence = 0;
@@ -294,7 +296,7 @@ export default class ChunkManager {
       return;
     }
 
-    this.log.logVerbose(`Setting partial to false`);
+    this.log.debug(`Setting partial to false`);
     this.bridge.setState(
       {
         partial: false,
@@ -302,7 +304,7 @@ export default class ChunkManager {
       [this.mainWindow, this.miniModeWindow]
     );
 
-    this.log.logVerbose(`Executing chunk ${chunk.id}`);
+    this.log.debug(`Executing chunk ${chunk.id}`);
     this.deadlineToMakeNewInitializeRequest = 0;
     chunk.executed = Date.now();
     this.startBuffering();
@@ -313,11 +315,11 @@ export default class ChunkManager {
   async onCommandsResponse(response: core.ICommandsResponse) {
     const chunk = this.chunkQueue.getChunk(response.chunkId!);
     if (!chunk) {
-      this.log.logVerbose(`No chunk found for ${response.chunkId!}`);
+      this.log.debug(`No chunk found for ${response.chunkId!}`);
       return;
     }
 
-    this.log.logVerbose(
+    this.log.debug(
       `Received ${response.final ? "final" : "partial"} response for ${chunk.id}: [${(
         response.alternatives || []
       )
@@ -337,7 +339,7 @@ export default class ChunkManager {
     if (!this.shouldAppendToPrevious(response)) {
       const partial = !chunk.executed && (!response.final || !this.reachedSilenceThreshold(chunk));
       if (!isMetaResponse(response) && response.alternatives && response.alternatives.length > 0) {
-        this.log.logVerbose(`Setting partial = ${partial}`);
+        this.log.debug(`Setting partial = ${partial}`);
         this.bridge.setState(
           {
             partial,
@@ -391,7 +393,7 @@ export default class ChunkManager {
     if (
       current.silence == Math.ceil(this.settings.getExecuteSilenceThreshold() * silenceThreshold)
     ) {
-      this.log.logVerbose(`Silence hit for ${current.id}`);
+      this.log.debug(`Silence hit for ${current.id}`);
       this.attemptToEvaluateChunk(current);
     }
   }
@@ -412,7 +414,7 @@ export default class ChunkManager {
       return;
     }
 
-    this.log.logVerbose(`Chunk end for ${current.id}`);
+    this.log.debug(`Chunk end for ${current.id}`);
     this.enqueue({ requestType: "editor" }, false);
     this.enqueue({ requestType: "endpoint", chunkId: current.id, finalize: true });
   }
@@ -420,7 +422,7 @@ export default class ChunkManager {
   async onChunkStart(audio: any) {
     const id = uuid();
     this.chunkQueue.add(id);
-    this.log.logVerbose(`Chunk start for ${id}`);
+    this.log.debug(`Chunk start for ${id}`);
 
     if (!this.speaking) {
       this.bridge.setState(
@@ -445,12 +447,12 @@ export default class ChunkManager {
   }
 
   startBuffering() {
-    this.log.logVerbose("Buffering started");
+    this.log.debug("Buffering started");
     this.buffering = true;
   }
 
   async stopBufferingAndFlush() {
-    this.log.logVerbose("Buffering stopped");
+    this.log.debug("Buffering stopped");
     this.buffering = false;
     await this.flush();
   }
@@ -472,7 +474,7 @@ export default class ChunkManager {
       [this.mainWindow, this.miniModeWindow]
     );
 
-    this.log.logVerbose(`Toggling listening to ${listening}`);
+    this.log.debug(`Toggling listening to ${listening}`);
     setTimeout(async () => {
       this.mainWindow.updateTray();
       if (listening) {

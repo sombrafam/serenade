@@ -6,6 +6,8 @@ import * as os from "os";
 import * as path from "path";
 import App from "./app";
 import Metadata from "../shared/metadata";
+import Log from "./log";
+import Settings from "./settings";
 
 let instance: App | null = null;
 const lock = app.requestSingleInstanceLock();
@@ -20,9 +22,11 @@ process.env["NODE_" + "ENV"] = "production";
 
 process.on("uncaughtException", (e) => {
   if (instance && instance.log) {
-    instance.log.logError(e);
+    instance.log.error("uncaughtException", e);
   } else {
-    console.error(e);
+    let settings = new Settings();
+    let log = new Log(settings, "Main");
+    log.error("uncaughtException", e);
   }
 });
 

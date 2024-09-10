@@ -8,11 +8,13 @@ import RendererBridge from "../bridge";
 import Stream from "../stream/stream";
 import { core } from "../../gen/core";
 import Log from "../log";
+import Settings from "../settings";
 
 const maximumIconLength = 20000;
 
 export default class IPCServer {
   private server: WebSocket.Server;
+  private log: Log;
 
   constructor(
     private active: Active,
@@ -22,8 +24,9 @@ export default class IPCServer {
     private miniModeWindow: MiniModeWindow,
     private pluginManager: PluginManager,
     private stream: Stream,
-    private log: Log
+    private settings: Settings
   ) {
+    this.log = new Log(this.settings, "IPCServer");
     this.server = new WebSocket.Server({ host: "localhost", port: 17373 });
     this.server.on("connection", (websocket) => {
       websocket.on("message", (message) => {
@@ -40,7 +43,7 @@ export default class IPCServer {
               icon.length <= maximumIconLength);
 
           if (!iconValid) {
-            this.log.logVerbose("Plugin provided an app icon that does not adhere to requirements");
+            this.log.warn("Plugin provided an app icon that does not adhere to requirements");
             icon = undefined;
           }
 
@@ -60,7 +63,7 @@ export default class IPCServer {
         }
         // custom commands messages from custom commands servers
         if (request.message == "customCommands") {
-          this.log.logVerbose(
+          this.log.debug(
             "Received " +
               request.data.commands.length +
               " commands, " +

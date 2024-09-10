@@ -22,13 +22,13 @@ export default class Executor {
   private miniModeHideTimeout?: NodeJS.Timeout;
   private pending?: core.ICommandsResponse;
   private resolveChainFinished = () => {};
+  private log: Log;
 
   constructor(
     private active: Active,
     private api: API,
     private bridge: RendererBridge,
     private insertHistory: InsertHistory,
-    private log: Log,
     private mainWindow: MainWindow,
     private miniModeWindow: MiniModeWindow,
     private nativeCommands: NativeCommands,
@@ -41,6 +41,7 @@ export default class Executor {
     private commandHandler: () => any
   ) {
     this.newChainFinishedPromise();
+    this.log = new Log(this.settings, "Executor");
   }
 
   private addToHistory(response: core.ICommandsResponse) {
@@ -514,7 +515,7 @@ export default class Executor {
   }
 
   async executeChain(text: string) {
-    this.log.logVerbose(`Executing chain: ${text}`);
+    this.log.debug(`Executing chain: ${text}`);
     await this.stream.sendInitializeRequest();
     this.stream.sendCallbackRequest({
       type: core.CallbackType.CALLBACK_TYPE_CHAIN,
@@ -561,7 +562,7 @@ export default class Executor {
     }
 
     if (response.alternatives && response.alternatives.length > 0) {
-      this.log.logVerbose(
+      this.log.debug(
         `Showing alternatives [${response.alternatives.map((e: any) => e.transcript).join(", ")}]`
       );
 

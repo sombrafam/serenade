@@ -348,6 +348,7 @@ export default class ChunkManager {
         );
 
         if (partial) {
+          this.log.debug(`showing alternatives for:  ${JSON.stringify(response)}`);
           response = this.executor.truncateAlternativesIfNeeded(response);
           this.executor.showAlternativesIfPresent(response);
         }

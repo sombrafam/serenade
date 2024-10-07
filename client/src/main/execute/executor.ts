@@ -1,4 +1,6 @@
 import * as os from "os";
+// @ts-ignore
+import player from 'node-wav-player';
 import Active from "../active";
 import API from "../api";
 import InsertHistory from "./insert-history";
@@ -15,6 +17,7 @@ import Stream from "../stream/stream";
 import System from "./system";
 import { core } from "../../gen/core";
 import { commandTypeToString, isMetaResponse, isValidAlternative } from "../../shared/alternatives";
+import path from "path";
 
 export default class Executor {
   private chainFinishedPromise = Promise.resolve();
@@ -23,6 +26,14 @@ export default class Executor {
   private pending?: core.ICommandsResponse;
   private resolveChainFinished = () => {};
   private log: Log;
+  private fileFolder = "static/audio/feedback/"
+  private feedbackFileMap: { [key: string]: string } = {
+    FAIL_ALL: "fail_all.wav",
+    FAIL_CHOOSE: "fail_choose.wav",
+    SUCCESS_HIT: "success_hit.wav",
+    SUCCESS_HIT_CHOOSE: "success_hit_choose.wav",
+    SUCCESS_CHOOSE: "success_choose.wav",
+  };
 
   constructor(
     private active: Active,
@@ -397,6 +408,174 @@ export default class Executor {
     this.pending = undefined;
   }
 
+/*  audioPlay(tone: string) {
+    const filePath = path.join(__dirname, "..", this.fileFolder, this.feedbackFileMap[tone]);
+    this.log.debug(`Playing audio from: ${filePath}`);
+    console.error(`Playing audio from: ${filePath}`);
+
+    try {
+      const audioCtx = new (window.AudioContext)();
+      const audioElement = new Audio(filePath);
+      const track = audioCtx.createMediaElementSource(audioElement);
+      const gainNode = audioCtx.createGain();
+
+      // Connect the audio graph
+      track.connect(gainNode).connect(audioCtx.destination);
+
+      // Set the volume
+      gainNode.gain.value = 0.5;
+
+      // Check if AudioContext is suspended and resume if necessary
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => {
+          this.log.debug('AudioContext resumed');
+          audioElement.play().catch((error) => {
+            this.log.error("Audio playback failed after resume:", error);
+          });
+        });
+      } else {
+        audioElement.play().catch((error) => {
+          this.log.error("Audio playback failed:", error);
+        });
+      }
+
+    } catch (error) {
+      this.log.error("Error in audioPlay function:", error);
+    }
+  }*/
+
+  audioPlay(tone: string) {
+    const filePath = path.join(__dirname, "..", this.fileFolder, this.feedbackFileMap[tone]);
+    this.log.debug(`Playing audio from: ${filePath}`);
+    console.error(`Playing audio from: ${filePath}`);
+
+    try {
+      // Construct the full file path to the audio file
+      const filePath = path.join(__dirname, "..", this.fileFolder, this.feedbackFileMap[tone]);
+
+      // Use node-wav-player to play the audio file
+      player.play({
+        path: filePath
+      })
+          .then(() => {
+            console.log('Audio playback started successfully');
+          })
+          .catch((error: any) => {
+            this.log.error(`Failed to play audio file: ${error}`);
+          });
+
+    } catch (e) {
+      this.log.error(`An error occurred while trying to play the audio: ${e}`);
+    }
+  }
+
+  async feedback_play(response: core.ICommandsResponse) {
+    // If response.final=True and, ...
+    // Response.execute is null, alternative list has no valid commands: FAIL_ALL: https://bit.ly/3Y2ooFC
+    // Response.execute is null, alternative list has 1 or more valid commands: FAIL_CHOOSE:
+    // Response.execute is {} ad has only one alternative: SUCCESS_HIT: https://bit.ly/3TKLAFy
+    // Response.execute is {} and has more than one alternative: SUCCESS_HIT_CHOOSE: https://bit.ly/4eJKFh0
+    // Response.execute is {} and command type=57: SUCCESS_CHOOSE: https://bit.ly/4eIE3PG
+
+    if (!response.final) {
+      return;
+    }
+
+    this.log.debug(`Feedback play 0: ${this.settings.getAudioFeedback()}`);
+    if (this.settings.getAudioFeedback() == "silent") {
+      return;
+    }
+
+    this.log.debug(`Feedback play 1:  ${JSON.stringify(response.execute)}`);
+    if (!response.execute) {
+      this.log.debug(`Feedback play 2: ${JSON.stringify(response.alternatives)}`);
+      if (!response.alternatives || response.alternatives.length == 0) {
+        this.log.debug(`Feedback play 3: FAIL_ALL`);
+        this.audioPlay("FAIL_ALL");
+        return;
+      }
+
+      if (response.alternatives) {
+        var hasValidCommands = false;
+        response.alternatives.forEach((alternative: core.ICommandsResponseAlternative) => {
+          if (alternative.commands && alternative.commands.length > 0) {
+            alternative.commands.forEach((command: core.ICommand) => {
+              if (command.type != core.CommandType.COMMAND_TYPE_INVALID) {
+                hasValidCommands = true;
+              }
+            });
+          }
+        });
+
+        if (!hasValidCommands) {
+            this.log.debug(`Feedback play 4: FAIL_ALL`);
+            this.audioPlay("FAIL_ALL");
+        } else {
+          this.log.debug(`Feedback play 3: FAIL_CHOOSE`);
+          this.audioPlay("FAIL_CHOOSE");
+        }
+        return;
+      }
+    }
+
+    if (this.settings.getAudioFeedback() == "errorOnly") {
+      return;
+    }
+
+    this.log.debug(`Feedback play 6: ${JSON.stringify(response.execute?.commands?.length)}`);
+    this.log.debug(`Feedback play 7: ${JSON.stringify(response.alternatives?.length)}`);
+
+    if (response.execute && response.execute.commands &&
+        response.execute.commands.length >= 1) {
+      var alternatives = response.alternatives;
+      var commands = response.execute.commands;
+      var validAlternatives = 0;
+      var validCommands = 0;
+
+      commands?.forEach((command: core.ICommand) => {
+          if (command.type != core.CommandType.COMMAND_TYPE_INVALID) {
+            validCommands++;
+          }
+      });
+
+      alternatives?.forEach((alternative: core.ICommandsResponseAlternative) => {
+        if (alternative.commands && alternative.commands.length > 0) {
+          alternative.commands.forEach((command: core.ICommand) => {
+            if (command.type != core.CommandType.COMMAND_TYPE_INVALID) {
+              validAlternatives++;
+            }
+          });
+        }
+      });
+
+      this.log.debug(`Feedback play 10: ${JSON.stringify(response.execute?.commands)}`);
+      this.log.debug(`Feedback play 11: ${JSON.stringify(response.execute?.commands?.length)}`);
+      if (response.execute && response.execute.commands &&
+        response.execute.commands[0].type == 7) {
+        this.log.debug(`Feedback play 12: SUCCESS_CHOOSE`);
+        this.audioPlay("SUCCESS_CHOOSE");
+        return;
+      }
+
+      if (this.settings.getAudioFeedback() == "userRequired") {
+        return;
+      }
+
+      this.log.debug(`Feedback play 7.5: ${validCommands}`);
+      this.log.debug(`Feedback play 7.6: ${validAlternatives}`);
+
+      if (validCommands >= 1 && validAlternatives <= 1) {
+        this.log.debug(`Feedback play 8: SUCCESS_HIT`);
+        this.audioPlay("SUCCESS_HIT");
+        return;
+      } else {
+        this.log.debug(`Feedback play 9: SUCCESS_HIT_CHOOSE`);
+        this.audioPlay("SUCCESS_HIT_CHOOSE");
+        return;
+      }
+    }
+  }
+
   async execute(response: core.ICommandsResponse, updateRenderer: boolean = true) {
     this.lastEndpointId = response.endpointId!;
 
@@ -409,9 +588,13 @@ export default class Executor {
       [this.mainWindow, this.miniModeWindow]
     );
 
+    this.log.debug(`Executing response: ${JSON.stringify(response)}`);
+    await this.feedback_play(response);
+
     if (updateRenderer) {
       this.showAlternativesIfPresent(response);
     }
+
 
     if (response.alternatives && response.alternatives.length > 0) {
       this.nativeCommands.useNeedsUndo = false;
@@ -563,7 +746,8 @@ export default class Executor {
 
     if (response.alternatives && response.alternatives.length > 0) {
       this.log.debug(
-        `Showing alternatives [${response.alternatives.map((e: any) => e.transcript).join(", ")}]`
+        `Showing alternatives [${response.alternatives.map((e: any) => e.transcript).join(", ")}], num alternatives: ${
+          response.alternatives.length}`
       );
 
       this.bridge.setState(
@@ -574,6 +758,7 @@ export default class Executor {
       );
 
       if (response.final) {
+        this.log.debug("Final response, clearing pending");
         this.savePendingResponseIfNeeded(response);
         this.bridge.setState(
           {

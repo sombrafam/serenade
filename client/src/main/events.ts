@@ -10,6 +10,7 @@ import ChunkManager from "./stream/chunk-manager";
 import Custom from "./ipc/custom";
 import LanguageSwitcherWindow from "./windows/language-switcher";
 import Local from "./ipc/local";
+import Log from "./log";
 import MainWindow from "./windows/main";
 import Microphone from "./stream/microphone";
 import MiniModeWindow from "./windows/mini-mode";
@@ -25,6 +26,8 @@ import Window from "./windows/window";
 import { core } from "../gen/core";
 
 export default class RendererProcessEventHandlers {
+  private log: Log;
+
   constructor(
     private active: Active,
     private app: App,
@@ -45,6 +48,9 @@ export default class RendererProcessEventHandlers {
     private settingsWindow: () => Promise<SettingsWindow> | undefined,
     private textInputWindow: () => Promise<TextInputWindow> | undefined
   ) {
+
+    this.log = new Log(this.settings, "Events");
+
     ipcMain.on("accessibilityPermission", () => {
       this.bridge.setState(
         {
@@ -161,6 +167,7 @@ export default class RendererProcessEventHandlers {
     });
 
     ipcMain.on("setSettings", async (_event: any, data: any) => {
+      this.log.debug(`setSettings : data : ${JSON.stringify(data)}`);
       if (data.animations !== undefined) {
         this.settings.setAnimations(data.animations);
         this.bridge.setState(
@@ -288,6 +295,17 @@ export default class RendererProcessEventHandlers {
         this.bridge.setState(
           {
             microphones: this.microphone.microphones(),
+          },
+          [this.settingsWindow()]
+        );
+      }
+
+      if (data.audioFeedback !== undefined) {
+        this.log.debug(`setting state : audioFeedback : ${data.audioFeedback}`)
+        this.settings.setAudioFeedback(data.audioFeedback);
+        this.bridge.setState(
+          {
+            audioFeedback: data.audioFeedback,
           },
           [this.settingsWindow()]
         );

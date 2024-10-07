@@ -389,6 +389,7 @@ export default class App {
         logAudio: settings.getLogAudio(),
         logSource: settings.getLogSource(),
         microphones: microphone.microphones(),
+        audioFeedback: settings.getAudioFeedback(),
         minimizedPosition: settings.getMinimizedPosition(),
         miniMode: settings.getMiniMode(),
         miniModeBottomUp: miniModeWindow.shouldPlaceAboveMain(),

@@ -245,6 +245,10 @@ export default class Settings {
     return this.get("system", "microphone", Microphone.systemDefaultMicrophone);
   }
 
+  getAudioFeedback(): string {
+    return this.get("user", "audio_feedback", "silent");
+  }
+
   getMinimizedPosition(): string {
     return this.get(
       "user",
@@ -447,6 +451,10 @@ export default class Settings {
 
   setMicrophone(microphone: any) {
     return this.set("system", "microphone", microphone);
+  }
+
+  setAudioFeedback(audioFeedback: string) {
+    this.set("user", "audio_feedback", audioFeedback);
   }
 
   setMinimizedPosition(position: string) {

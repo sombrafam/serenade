@@ -1,4 +1,5 @@
 import React from "react";
+import Log from "../../../main/log";
 import { connect } from "react-redux";
 import { ipcRenderer } from "electron";
 import Metadata from "../../../shared/metadata";
@@ -9,6 +10,7 @@ import { Toggle } from "../../components/toggle";
 const GeneralComponent: React.FC<{
   darkMode: string;
   microphones: any[];
+  audioFeedback: string;
   miniMode: boolean;
   miniModeFewerAlternativesCount: number;
   miniModeHideTimeout: number;
@@ -19,6 +21,7 @@ const GeneralComponent: React.FC<{
 }> = ({
   darkMode,
   microphones,
+  audioFeedback,
   miniMode,
   miniModeFewerAlternativesCount,
   miniModeHideTimeout,
@@ -27,90 +30,121 @@ const GeneralComponent: React.FC<{
   useMiniModeHideTimeout,
   volume,
 }) => {
-  const metadata = new Metadata();
-  const appearanceOptions = [
-    { id: "system", value: "System" },
-    { id: "light", value: "Light" },
-    { id: "dark", value: "Dark" },
-  ];
 
-  return (
-    <div className="px-4">
-      {microphones ? (
-        <Row
-          title="Microphone"
-          subtitle={
-            <>
-              <div className="inline-block border rounded w-44 h-2">
-                <div
-                  className="bg-violet-600 h-full rounded transition-all"
-                  style={{ width: volume * 100 + "%" }}
-                ></div>
-              </div>
-            </>
-          }
-          action={
-            <div className="w-52 ml-auto">
-              <Select
-                items={microphones.map((e: any) => e.name)}
-                value={microphones.filter((e: any) => e.selected)[0].name}
-                onChange={(value: any) =>
-                  ipcRenderer.send("setSettings", {
-                    microphone: microphones.filter((e: any) => e.name == value)[0],
-                  })
-                }
-              />
-            </div>
-          }
-        />
-      ) : null}
+const metadata = new Metadata();
+const appearanceOptions = [
+  { id: "system", value: "System" },
+  { id: "light", value: "Light" },
+  { id: "dark", value: "Dark" },
+];
+
+const audioFeedbackOptions = [
+    { id: "silent", value: "Silent" },
+    { id: "errorOnly", value: "Error Only" },
+    { id: "userRequired", value: "User Required" },
+    { id: "always", value: "Always" }
+];
+
+if(audioFeedback == null) {
+    console.log(`audioFeedback is null`);
+    audioFeedback = "silent";
+}
+
+return (
+  <div className="px-4">
+    {microphones ? (
       <Row
-        title="Appearance"
-        subtitle="Change the UI to light or dark mode"
+        title="Microphone"
+        subtitle={
+          <>
+            <div className="inline-block border rounded w-44 h-2">
+              <div
+                className="bg-violet-600 h-full rounded transition-all"
+                style={{ width: volume * 100 + "%" }}
+              ></div>
+            </div>
+          </>
+        }
         action={
-          <div className="w-40 ml-auto">
+          <div className="w-52 ml-auto">
             <Select
-              items={appearanceOptions.map((e: any) => e.value)}
-              value={appearanceOptions.filter((e: any) => e.id == darkMode)[0].value}
+              items={microphones.map((e: any) => e.name)}
+              value={microphones.filter((e: any) => e.selected)[0].name}
               onChange={(value: any) =>
-                setValue("darkMode", appearanceOptions.filter((e: any) => e.value == value)[0].id)
+                ipcRenderer.send("setSettings", {
+                  microphone: microphones.filter((e: any) => e.name == value)[0],
+                })
               }
             />
           </div>
         }
       />
-      <Row
-        title="Listen shortcut"
-        subtitle="Keyboard shortcut for toggling Serenade"
-        action={
+    ) : null}
+    <Row
+      title="Appearance"
+      subtitle="Change the UI to light or dark mode"
+      action={
+        <div className="w-40 ml-auto">
+          <Select
+            items={appearanceOptions.map((e: any) => e.value)}
+            value={appearanceOptions.filter((e: any) => e.id == darkMode)[0].value}
+            onChange={(value: any) =>
+              setValue("darkMode", appearanceOptions.filter((e: any) => e.value == value)[0].id)
+            }
+          />
+        </div>
+      }
+    />
+    <Row
+      title="Audio Feedback"
+      subtitle="Audio feedback for executed commands"
+      action={
+        <div className="w-40 ml-auto">
+          <Select
+            items={audioFeedbackOptions.map((e: any) => e.value)}
+            value={audioFeedbackOptions.filter((e: any) => e.id == audioFeedback)[0].value}
+            onChange={(value: any) =>
+              ipcRenderer.send("setSettings", {
+                audioFeedback: audioFeedbackOptions.filter((e: any) => e.value == value)[0].id,
+              })
+            }
+          />
+        </div>
+      }
+    />
+
+    <Row
+      title="Listen shortcut"
+      subtitle="Keyboard shortcut for toggling Serenade"
+      action={
+        <input
+          type="text"
+          className="input w-32 py-1"
+          defaultValue={pushToTalk}
+          onChange={(e) => setValue("pushToTalk", e)}
+        />
+      }
+    />
+    <Row
+      title="Compact UI"
+      subtitle="Shrink the main Serenade window"
+      action={<Toggle value={miniMode} onChange={(e) => setValue("miniMode", e)} />}
+    />
+    <Row
+      title="Hide alternatives automatically"
+      subtitle={
+        <>
+          In compact UI, hide after{" "}
           <input
             type="text"
-            className="input w-32 py-1"
-            defaultValue={pushToTalk}
-            onChange={(e) => setValue("pushToTalk", e)}
-          />
-        }
-      />
-      <Row
-        title="Compact UI"
-        subtitle="Shrink the main Serenade window"
-        action={<Toggle value={miniMode} onChange={(e) => setValue("miniMode", e)} />}
-      />
-      <Row
-        title="Hide alternatives automatically"
-        subtitle={
-          <>
-            In compact UI, hide after{" "}
-            <input
-              type="text"
-              className="input w-8 inline-block disabled:bg-gray-300 py-0"
-              defaultValue={miniModeHideTimeout}
-              disabled={!useMiniModeHideTimeout}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                if (isNaN(value)) {
-                  return;
-                }
+            className="input w-8 inline-block disabled:bg-gray-300 py-0"
+            defaultValue={miniModeHideTimeout}
+            disabled={!useMiniModeHideTimeout}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value);
+              if (isNaN(value)) {
+                return;
+              }
 
                 ipcRenderer.send("setSettings", { miniModeHideTimeout: value });
               }}
@@ -164,6 +198,7 @@ const GeneralComponent: React.FC<{
 export const General = connect((state: any) => ({
   darkMode: state.darkMode,
   microphones: state.microphones,
+  audioFeedback: state.audioFeedback,
   miniMode: state.miniMode,
   miniModeFewerAlternativesCount: state.miniModeFewerAlternativesCount,
   miniModeHideTimeout: state.miniModeHideTimeout,
